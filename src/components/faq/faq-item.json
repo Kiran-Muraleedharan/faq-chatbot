@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_faq_faq_items",
+  "info": {
+    "displayName": "FAQ Item",
+    "icon": "lightbulb"
+  },
+  "options": {},
+  "attributes": {
+    "question": {
+      "type": "text",
+      "required": true
+    },
+    "answer": {
+      "type": "richtext",
+      "required": true
+    },
+    "tags": {
+      "type": "json"
+    }
+  },
+  "config": {}
+}
