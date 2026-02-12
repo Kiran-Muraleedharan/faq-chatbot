@@ -14,6 +14,7 @@ import { useFetchClient, useNotification } from '@strapi/admin/strapi-admin';
 import ChatbotPreview from '../components/ChatbotPreview';
 import ApiConfig from '../components/ApiConfig';
 import CollectionSection from '../components/CollectionSection';
+import SuggestedQuestions from '../components/SuggestedQuestions';
 
 // --- TYPES ---
 type FieldConfig = {
@@ -34,6 +35,7 @@ const HomePage = () => {
   const [isApiVisible, setIsApiVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(['']);
 
   const { get, post } = useFetchClient();
   const { toggleNotification } = useNotification();
@@ -47,6 +49,8 @@ const HomePage = () => {
         const contentTypes = data.contentTypes || [];
         const savedSettings = data.settings?.config || {}; 
         const savedKey = data.settings?.openaiKey || '';
+        const savedQuestions = data.settings?.suggestedQuestions || [];
+        setSuggestedQuestions(savedQuestions);
 
         const formattedItems: CollectionConfig[] = contentTypes.map((ct: any) => ({
           uid: ct.uid,
@@ -109,7 +113,8 @@ const HomePage = () => {
 
       await post('/chatbot-config/config', { 
         config: configToSave, 
-        openaiKey 
+        openaiKey ,
+        suggestedQuestions
       });
       
       toggleNotification({ type: 'success', message: 'Settings saved successfully!' });
@@ -158,16 +163,11 @@ const HomePage = () => {
           onToggleAll={toggleAllFields} 
         />
 
-        {/* GAP */}
-        <Box marginTop={6} />
-
-        {/* PLUGIN/FAQ COLLECTIONS SECTION */}
-        <CollectionSection 
-          title="Chatbot FAQ" 
-          collections={items.filter(c => c.isPlugin)} 
-          onToggleField={toggleField} 
-          onToggleAll={toggleAllFields} 
+        <SuggestedQuestions 
+          questions={suggestedQuestions}
+          onSaveList={(newList) => setSuggestedQuestions(newList)}
         />
+
       </Box>
 
       {/* FLOATING CHAT PREVIEW */}
