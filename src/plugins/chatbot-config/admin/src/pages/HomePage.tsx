@@ -12,7 +12,7 @@ import { useFetchClient, useNotification } from '@strapi/admin/strapi-admin';
 
 // Import our custom components
 import ChatbotPreview from '../components/ChatbotPreview';
-import ApiConfig from '../components/ApiConfig';
+import ConfigSettings from '../components/ConfigSettings'; 
 import CollectionSection from '../components/CollectionSection';
 import SuggestedQuestions from '../components/SuggestedQuestions';
 
@@ -32,10 +32,17 @@ type CollectionConfig = {
 const HomePage = () => {
   const [items, setItems] = useState<CollectionConfig[]>([]);
   const [openaiKey, setOpenaiKey] = useState('');
-  const [isApiVisible, setIsApiVisible] = useState(false);
+  const [businessPrompt, setBusinessPrompt] = useState('');
+  const [responseStyle, setResponseStyle] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [baseDomain, setBaseDomain] = useState('');
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(['']);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  
+  // Updated type to include 'domain'
+  const [activeModal, setActiveModal] = useState<'key' | 'business' | 'style' | 'logo' | 'domain' | null>(null);
 
   const { get, post } = useFetchClient();
   const { toggleNotification } = useNotification();
@@ -45,12 +52,18 @@ const HomePage = () => {
     const init = async () => {
       try {
         const { data } = await get('/chatbot-config/config');
-        
+
         const contentTypes = data.contentTypes || [];
-        const savedSettings = data.settings?.config || {}; 
-        const savedKey = data.settings?.openaiKey || '';
-        const savedQuestions = data.settings?.suggestedQuestions || [];
-        setSuggestedQuestions(savedQuestions);
+        const settings = data.settings || {};
+        const savedConfig = settings.config || {}; 
+
+        // Set state from database
+        setOpenaiKey(settings.openaiKey || '');
+        setBusinessPrompt(settings.businessPrompt || '');
+        setResponseStyle(settings.responseStyle || '');
+        setLogoUrl(settings.logoUrl || '');
+        setBaseDomain(settings.baseDomain || '');
+        setSuggestedQuestions(settings.suggestedQuestions || []);
 
         const formattedItems: CollectionConfig[] = contentTypes.map((ct: any) => ({
           uid: ct.uid,
@@ -58,12 +71,11 @@ const HomePage = () => {
           isPlugin: ct.uid.includes('plugin::'),
           fields: ct.attributes.map((attr: any) => ({
             name: attr.name,
-            enabled: savedSettings[ct.uid]?.includes(attr.name) || false
+            enabled: savedConfig[ct.uid]?.includes(attr.name) || false
           }))
         }));
 
         setItems(formattedItems);
-        setOpenaiKey(savedKey);
       } catch (err) {
         toggleNotification({ type: 'warning', message: 'Error loading configuration.' });
       } finally {
@@ -101,6 +113,11 @@ const HomePage = () => {
     );
   };
 
+  // Logic for opening popups
+  const handleManageSetting = (type: 'key' | 'business' | 'style' | 'logo' | 'domain') => {
+    setActiveModal(type);
+  };
+
   // Save to server
   const save = async () => {
     setIsSaving(true);
@@ -113,12 +130,15 @@ const HomePage = () => {
 
       await post('/chatbot-config/config', { 
         config: configToSave, 
-        openaiKey ,
+        openaiKey,
+        businessPrompt,
+        responseStyle,
+        logoUrl,
+        baseDomain,
         suggestedQuestions
       });
       
       toggleNotification({ type: 'success', message: 'Settings saved successfully!' });
-      setIsApiVisible(false);
     } catch {
       toggleNotification({ type: 'warning', message: 'Error saving settings.' });
     } finally {
@@ -147,18 +167,23 @@ const HomePage = () => {
       {/* BODY CONTENT */}
       <Box paddingLeft={8} paddingRight={8} background="neutral100">
         
-        {/* API CONFIG SECTION */}
-        <ApiConfig 
-          openaiKey={openaiKey} 
-          setOpenaiKey={setOpenaiKey} 
-          isVisible={isApiVisible} 
-          setIsVisible={setIsApiVisible} 
+        {/* CONFIGURATION SETTINGS HUB */}
+        <ConfigSettings 
+            openaiKey={openaiKey}
+            businessPrompt={businessPrompt}
+            responseStyle={responseStyle}
+            logoUrl={logoUrl}
+            baseDomain={baseDomain} // Added this prop
+            onManage={handleManageSetting}
         />
 
-        {/* REGULAR COLLECTIONS SECTION */}
+        {/* SUGGESTED QUESTIONS COMPONENT */}
+
+
+        {/* PERMISSIONS / COLLECTIONS SECTION */}
         <CollectionSection 
           title="Collections" 
-          collections={items.filter(c => !c.isPlugin)} 
+          collections={items} 
           onToggleField={toggleField} 
           onToggleAll={toggleAllFields} 
         />
@@ -172,6 +197,13 @@ const HomePage = () => {
 
       {/* FLOATING CHAT PREVIEW */}
       <ChatbotPreview />
+
+      {/* MODALS PLACEHOLDER */}
+      {activeModal && (
+          <Box>
+              {/* Popups will be added here in the next step */}
+          </Box>
+      )}
     </Main>
   );
 };
