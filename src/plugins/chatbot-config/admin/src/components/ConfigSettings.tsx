@@ -3,51 +3,31 @@ import { Box, Flex, Typography, Button, Divider } from '@strapi/design-system';
 
 interface ConfigSettingsProps {
   openaiKey: string;
-  businessPrompt: string;
-  responseStyle: string;
   logoUrl: string;
   baseDomain: string;
-  onManage: (type: 'key' | 'business' | 'style' | 'logo' | 'domain') => void;
+  contactLink: string;
+  onManage: (type: 'key' | 'logo' | 'domain' | 'contact') => void;
 }
 
 const ConfigSettings = ({ 
   openaiKey, 
-  businessPrompt, 
-  responseStyle, 
   logoUrl, 
   baseDomain,
+  contactLink,
   onManage 
 }: ConfigSettingsProps) => {
 
-  const SettingRow = ({ 
-    title, 
-    isSet, 
-    type 
-  }: { 
-    title: string, 
-    isSet: boolean, 
-    type: 'key' | 'business' | 'style' | 'logo' | 'domain' 
-  }) => (
+  const SettingRow = ({ title, isSet, type }: { title: string, isSet: boolean, type: any }) => (
     <Box paddingLeft={6} paddingRight={6} paddingTop={4} paddingBottom={4}>
       <Flex justifyContent="space-between" alignItems="center">
-        <Box>
-          <Typography variant="omega" fontWeight="bold">
-            {title}
-          </Typography>
-        </Box>
-        
+        <Typography variant="omega" fontWeight="bold">{title}</Typography>
         <Flex gap={3}>
             {isSet && (
                 <Box paddingLeft={2} paddingRight={2} background="success100" hasRadius>
                     <Typography variant="sigma" textColor="success600" fontWeight="bold">CONFIGURED</Typography>
                 </Box>
             )}
-            <Button 
-                variant="tertiary" 
-                onClick={() => onManage(type)}
-            >
-                Manage
-            </Button>
+            <Button variant="tertiary" onClick={() => onManage(type)}>Manage</Button>
         </Flex>
       </Flex>
     </Box>
@@ -55,35 +35,13 @@ const ConfigSettings = ({
 
   return (
     <Box background="neutral0" shadow="filterShadow" hasRadius marginBottom={6}>
-      <SettingRow 
-        type="key"
-        title="OpenAI API Key"
-        isSet={!!openaiKey}
-      />
+      <SettingRow type="domain" title="Base Domain" isSet={!!baseDomain} />
       <Divider />
-      <SettingRow 
-        type="domain"
-        title="Base Domain"
-        isSet={!!baseDomain}
-      />
+      <SettingRow type="key" title="OpenAI API Key" isSet={!!openaiKey} />
       <Divider />
-      <SettingRow 
-        type="business"
-        title="Business Logic Prompt"
-        isSet={!!businessPrompt}
-      />
+      <SettingRow type="logo" title="Chatbot Branding Logo" isSet={!!logoUrl} />
       <Divider />
-      <SettingRow 
-        type="style"
-        title="Response Style Prompt"
-        isSet={!!responseStyle}
-      />
-      <Divider />
-      <SettingRow 
-        type="logo"
-        title="Chatbot Branding Logo"
-        isSet={!!logoUrl}
-      />
+      <SettingRow type="contact" title="Organization Contact Link" isSet={!!contactLink} />
     </Box>
   );
 };

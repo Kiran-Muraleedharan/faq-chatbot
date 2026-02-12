@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Main,
-  Typography,
-  Flex,
-  Button,
-  Box,
-  Loader,
-} from '@strapi/design-system';
+import { Main, Typography, Flex, Button, Box, Loader } from '@strapi/design-system';
 import { Check } from '@strapi/icons';
 import { useFetchClient, useNotification } from '@strapi/admin/strapi-admin';
 
@@ -15,9 +8,10 @@ import ChatbotPreview from '../components/ChatbotPreview';
 import ConfigSettings from '../components/ConfigSettings'; 
 import CollectionSection from '../components/CollectionSection';
 import SuggestedQuestions from '../components/SuggestedQuestions';
-import PopUp from '../components/PopUp'; // Import the new Unified PopUp
+import InstructionsSection from '../components/InstructionsSection';
+import PopUp from '../components/PopUp';
 
-// --- TYPES ---
+// --- TYPES (Fixed: Defined outside the component to ensure scope) ---
 type FieldConfig = {
   name: string;
   enabled: boolean;
@@ -30,22 +24,24 @@ type CollectionConfig = {
 };
 
 const HomePage = () => {
-  // --- Data States ---
+  // --- Data States (Fixed: Explicitly typed to avoid 'any') ---
   const [allContentTypes, setAllContentTypes] = useState<CollectionConfig[]>([]);
   const [activeCollections, setActiveCollections] = useState<CollectionConfig[]>([]);
   
   // --- Settings States ---
   const [openaiKey, setOpenaiKey] = useState('');
-  const [businessPrompt, setBusinessPrompt] = useState('');
-  const [responseStyle, setResponseStyle] = useState('');
+  const [systemInstructions, setSystemInstructions] = useState('');
+  const [responseInstructions, setResponseInstructions] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [baseDomain, setBaseDomain] = useState('');
+  const [contactLink, setContactLink] = useState('');
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   
   // --- UI States ---
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeModal, setActiveModal] = useState<'key' | 'business' | 'style' | 'logo' | 'domain' | 'collections' | null>(null);
+  const [activeModal, setActiveModal] = useState<'key' | 'logo' | 'domain' | 'contact' | 'collections' | 'suggestion' |  null>(null);
 
   const { get, post } = useFetchClient();
   const { toggleNotification } = useNotification();
@@ -55,34 +51,33 @@ const HomePage = () => {
     const init = async () => {
       try {
         const { data } = await get('/chatbot-config/config');
-
-        const contentTypes = data.contentTypes || [];
         const settings = data.settings || {};
         const savedConfig = settings.config || {}; 
 
-        // 1. Initialize Settings
+        // 1. Set Settings from Database
         setOpenaiKey(settings.openaiKey || '');
-        setBusinessPrompt(settings.businessPrompt || '');
-        setResponseStyle(settings.responseStyle || '');
+        setSystemInstructions(settings.systemInstructions || '');
+        setResponseInstructions(settings.responseInstructions || '');
         setLogoUrl(settings.logoUrl || '');
         setBaseDomain(settings.baseDomain || '');
+        setContactLink(settings.contactLink || '');
         setSuggestedQuestions(settings.suggestedQuestions || []);
 
-        // 2. Initialize All Possible Collections (Friend's Logic)
-        const formattedAll: CollectionConfig[] = contentTypes.map((ct: any) => ({
+        // 2. Format All Strapi Content Types
+        const formattedAll: CollectionConfig[] = (data.contentTypes || []).map((ct: any) => ({
           uid: ct.uid,
           name: ct.displayName,
           fields: ct.attributes.map((attr: any) => ({
-            name: attr.name,
+            name: attr.name, 
             enabled: savedConfig[ct.uid]?.includes(attr.name) || false
           }))
         }));
 
         setAllContentTypes(formattedAll);
 
-        // 3. Set Active Collections (only those present in saved config)
-        const initialActive = formattedAll.filter(ct => 
-          Object.keys(savedConfig).includes(ct.uid)
+        // 3. Set Active Collections (Fixed: ct is now typed via CollectionConfig)
+        const initialActive = formattedAll.filter((ct: CollectionConfig) => 
+            Object.keys(savedConfig).includes(ct.uid)
         );
         setActiveCollections(initialActive);
 
@@ -95,61 +90,43 @@ const HomePage = () => {
     init();
   }, [get]);
 
-  // Handle Collection Selection (Friend's Logic)
-  const handleUpdateCollections = (selectedUids: string[]) => {
-    setActiveCollections((currentActive) => {
-      const remainingActive = currentActive.filter(c => selectedUids.includes(c.uid));
-      const currentUids = currentActive.map(c => c.uid);
-      const newUids = selectedUids.filter(uid => !currentUids.includes(uid));
-      
-      const newlyAdded = allContentTypes
-        .filter(ct => newUids.includes(ct.uid))
-        .map(ct => JSON.parse(JSON.stringify(ct))); // Deep copy to avoid reference issues
-
-      return [...remainingActive, ...newlyAdded];
-    });
-  };
-
-  // Unified Save for PopUp
+  // Handle Logic for Modals
   const handlePopupSave = (data: any) => {
-    if (activeModal === 'collections') handleUpdateCollections(data);
+    if (activeModal === 'collections') {
+      const selectedUids = data as string[];
+      setActiveCollections((currentActive) => {
+        const remaining = currentActive.filter(c => selectedUids.includes(c.uid));
+        const currentUids = currentActive.map(c => c.uid);
+        const newlyAdded = allContentTypes
+          .filter(ct => selectedUids.includes(ct.uid) && !currentUids.includes(ct.uid))
+          .map(ct => JSON.parse(JSON.stringify(ct))); // Create a deep copy
+        return [...remaining, ...newlyAdded];
+      });
+    } 
+    // NEW: Handle Adding/Editing Suggested Questions
+    else if (activeModal === 'suggestion') {
+      setSuggestedQuestions((prev) => {
+        const newList = [...prev];
+        if (editingQuestionIndex !== null) {
+          // We are updating an existing question
+          newList[editingQuestionIndex] = data;
+        } else {
+          // We are adding a new question to the bottom of the list
+          newList.push(data);
+        }
+        return newList;
+      });
+      setEditingQuestionIndex(null); // Reset the index after saving
+    }
     else if (activeModal === 'key') setOpenaiKey(data);
     else if (activeModal === 'domain') setBaseDomain(data);
     else if (activeModal === 'logo') setLogoUrl(data);
-    else if (activeModal === 'business') setBusinessPrompt(data);
-    else if (activeModal === 'style') setResponseStyle(data);
+    else if (activeModal === 'contact') setContactLink(data);
     
     setActiveModal(null);
   };
 
-  // Handle accordion field toggles
-  const toggleField = (uid: string, fieldName: string) => {
-    setActiveCollections((prev) =>
-      prev.map((c) => {
-        if (c.uid !== uid) return c;
-        return {
-          ...c,
-          fields: c.fields.map((f) =>
-            f.name === fieldName ? { ...f, enabled: !f.enabled } : f
-          ),
-        };
-      })
-    );
-  };
-
-  const toggleAllFields = (uid: string, value: boolean) => {
-    setActiveCollections((prev) =>
-      prev.map((c) => {
-        if (c.uid !== uid) return c;
-        return {
-          ...c,
-          fields: c.fields.map((f) => ({ ...f, enabled: value })),
-        };
-      })
-    );
-  };
-
-  // Save to server
+  // Save Settings to Database
   const save = async () => {
     setIsSaving(true);
     try {
@@ -161,11 +138,12 @@ const HomePage = () => {
 
       await post('/chatbot-config/config', { 
         config: configToSave, 
-        openaiKey,
-        businessPrompt,
-        responseStyle,
-        logoUrl,
-        baseDomain,
+        openaiKey, 
+        systemInstructions, 
+        responseInstructions, 
+        logoUrl, 
+        baseDomain, 
+        contactLink, 
         suggestedQuestions
       });
       
@@ -177,13 +155,7 @@ const HomePage = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Flex justifyContent="center" alignItems="center" height="100vh">
-        <Loader>Loading configuration...</Loader>
-      </Flex>
-    );
-  }
+  if (isLoading) return <Flex justifyContent="center" height="100vh"><Loader /></Flex>;
 
   return (
     <Main>
@@ -198,49 +170,77 @@ const HomePage = () => {
       {/* BODY CONTENT */}
       <Box paddingLeft={8} paddingRight={8} background="neutral100">
         
-        {/* CONFIGURATION SETTINGS HUB */}
+        {/* TOP CONFIGURATION ROWS */}
         <ConfigSettings 
-            openaiKey={openaiKey}
-            businessPrompt={businessPrompt}
-            responseStyle={responseStyle}
-            logoUrl={logoUrl}
-            baseDomain={baseDomain}
-            onManage={(type) => setActiveModal(type)}
+            baseDomain={baseDomain} 
+            openaiKey={openaiKey} 
+            logoUrl={logoUrl} 
+            contactLink={contactLink} 
+            onManage={(type: any) => setActiveModal(type)}
         />
 
-        {/* SUGGESTED QUESTIONS COMPONENT */}
-        <SuggestedQuestions 
-          questions={suggestedQuestions}
-          onSaveList={(newList) => setSuggestedQuestions(newList)}
-        />
-
-        {/* PERMISSIONS / COLLECTIONS SECTION (Updated with friend's logic) */}
+        {/* ACTIVE COLLECTIONS BOX */}
         <CollectionSection 
           collections={activeCollections} 
-          onToggleField={toggleField} 
-          onToggleAll={toggleAllFields} 
+          onToggleField={(uid, fName) => {
+            setActiveCollections(prev => prev.map(c => c.uid !== uid ? c : {
+              ...c, fields: c.fields.map((f: FieldConfig) => f.name === fName ? { ...f, enabled: !f.enabled } : f)
+            }));
+          }} 
+          onToggleAll={(uid, val) => {
+            setActiveCollections(prev => prev.map(c => c.uid !== uid ? c : {
+              ...c, fields: c.fields.map((f: FieldConfig) => ({ ...f, enabled: val }))
+            }));
+          }}
           onAddClick={() => setActiveModal('collections')}
         />
 
+
+        {/* SUGGESTED QUESTIONS */}
+<SuggestedQuestions 
+  questions={suggestedQuestions}
+  onAddClick={() => {
+    setEditingQuestionIndex(null);
+    setActiveModal('suggestion');
+  }}
+  onEditClick={(index) => {
+    setEditingQuestionIndex(index);
+    setActiveModal('suggestion');
+  }}
+  onRemove={(index) => {
+    setSuggestedQuestions(prev => prev.filter((_, i) => i !== index));
+  }}
+/>
+
+
+
+        {/* SYSTEM & RESPONSE INSTRUCTIONS */}
+        <InstructionsSection 
+          systemInstructions={systemInstructions}
+          responseInstructions={responseInstructions}
+          onUpdateSystem={setSystemInstructions}
+          onUpdateResponse={setResponseInstructions}
+        />
       </Box>
 
-      {/* UNIFIED POPUP */}
+      {/* UNIFIED POPUP MODAL */}
       <PopUp 
         isOpen={!!activeModal} 
-        type={activeModal}
+        type={activeModal} 
         onClose={() => setActiveModal(null)} 
         onSave={handlePopupSave}
+        // Filter plugin collection so it is not shown in selection popup
         availableCollections={allContentTypes.filter(c => c.uid !== 'plugin::chatbot-config.faq')}
         initialData={
             activeModal === 'collections' ? activeCollections.map(c => c.uid) :
+            activeModal === 'suggestion' ? (editingQuestionIndex !== null ? suggestedQuestions[editingQuestionIndex] : ''):
             activeModal === 'key' ? openaiKey :
             activeModal === 'domain' ? baseDomain :
-            activeModal === 'logo' ? logoUrl :
-            activeModal === 'business' ? businessPrompt : responseStyle
+            activeModal === 'logo' ? logoUrl : contactLink
         }
       />
 
-      {/* FLOATING CHAT PREVIEW */}
+      {/* FLOATING PREVIEW WIDGET */}
       <ChatbotPreview />
     </Main>
   );
