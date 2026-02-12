@@ -11,7 +11,7 @@ import SuggestedQuestions from '../components/SuggestedQuestions';
 import InstructionsSection from '../components/InstructionsSection';
 import PopUp from '../components/PopUp';
 
-// --- TYPES (Fixed: Defined outside the component to ensure scope) ---
+// --- TYPES (Updated to include cardStyle) ---
 type FieldConfig = {
   name: string;
   enabled: boolean;
@@ -21,10 +21,11 @@ type CollectionConfig = {
   uid: string;
   name: string;
   fields: FieldConfig[];
+  cardStyle?: string; // Added from friend's update
 };
 
 const HomePage = () => {
-  // --- Data States (Fixed: Explicitly typed to avoid 'any') ---
+  // --- Data States ---
   const [allContentTypes, setAllContentTypes] = useState<CollectionConfig[]>([]);
   const [activeCollections, setActiveCollections] = useState<CollectionConfig[]>([]);
   
@@ -53,6 +54,7 @@ const HomePage = () => {
         const { data } = await get('/chatbot-config/config');
         const settings = data.settings || {};
         const savedConfig = settings.config || {}; 
+        const savedStyles = settings.cardStyles || {}; // Added from friend's update
 
         // 1. Set Settings from Database
         setOpenaiKey(settings.openaiKey || '');
@@ -63,10 +65,11 @@ const HomePage = () => {
         setContactLink(settings.contactLink || '');
         setSuggestedQuestions(settings.suggestedQuestions || []);
 
-        // 2. Format All Strapi Content Types
+        // 2. Format All Strapi Content Types (Updated with cardStyle mapping)
         const formattedAll: CollectionConfig[] = (data.contentTypes || []).map((ct: any) => ({
           uid: ct.uid,
           name: ct.displayName,
+          cardStyle: savedStyles[ct.uid] || undefined, // Added from friend's update
           fields: ct.attributes.map((attr: any) => ({
             name: attr.name, 
             enabled: savedConfig[ct.uid]?.includes(attr.name) || false
@@ -75,7 +78,7 @@ const HomePage = () => {
 
         setAllContentTypes(formattedAll);
 
-        // 3. Set Active Collections (Fixed: ct is now typed via CollectionConfig)
+        // 3. Set Active Collections 
         const initialActive = formattedAll.filter((ct: CollectionConfig) => 
             Object.keys(savedConfig).includes(ct.uid)
         );
@@ -90,33 +93,39 @@ const HomePage = () => {
     init();
   }, [get]);
 
-  // Handle Logic for Modals
+  // --- Handlers from Friend's Update ---
+  const handleUpdateCardStyle = (uid: string, style: string) => {
+    setActiveCollections((prev) => prev.map((c) =>
+      c.uid === uid ? { ...c, cardStyle: style } : c
+    ));
+  };
+
+  const handleRemoveCollection = (uid: string) => {
+    setActiveCollections((prev) => prev.filter(c => c.uid !== uid));
+  };
+
+  // --- Logic for Modals ---
   const handlePopupSave = (data: any) => {
     if (activeModal === 'collections') {
       const selectedUids = data as string[];
       setActiveCollections((currentActive) => {
         const remaining = currentActive.filter(c => selectedUids.includes(c.uid));
         const currentUids = currentActive.map(c => c.uid);
+        const newUids = selectedUids.filter(uid => !currentUids.includes(uid));
         const newlyAdded = allContentTypes
           .filter(ct => selectedUids.includes(ct.uid) && !currentUids.includes(ct.uid))
-          .map(ct => JSON.parse(JSON.stringify(ct))); // Create a deep copy
+          .map(ct => JSON.parse(JSON.stringify(ct)));
         return [...remaining, ...newlyAdded];
       });
     } 
-    // NEW: Handle Adding/Editing Suggested Questions
     else if (activeModal === 'suggestion') {
       setSuggestedQuestions((prev) => {
         const newList = [...prev];
-        if (editingQuestionIndex !== null) {
-          // We are updating an existing question
-          newList[editingQuestionIndex] = data;
-        } else {
-          // We are adding a new question to the bottom of the list
-          newList.push(data);
-        }
+        if (editingQuestionIndex !== null) newList[editingQuestionIndex] = data;
+        else newList.push(data);
         return newList;
       });
-      setEditingQuestionIndex(null); // Reset the index after saving
+      setEditingQuestionIndex(null);
     }
     else if (activeModal === 'key') setOpenaiKey(data);
     else if (activeModal === 'domain') setBaseDomain(data);
@@ -126,25 +135,24 @@ const HomePage = () => {
     setActiveModal(null);
   };
 
-  // Save Settings to Database
+  // --- Save Logic (Updated to save cardStyles) ---
   const save = async () => {
     setIsSaving(true);
     try {
       const configToSave: Record<string, string[]> = {};
+      const stylesToSave: Record<string, string> = {}; // Added from friend's update
+
       activeCollections.forEach(item => {
         const enabled = item.fields.filter(f => f.enabled).map(f => f.name);
         if (enabled.length > 0) configToSave[item.uid] = enabled;
+        if (item.cardStyle) stylesToSave[item.uid] = item.cardStyle; // Added from friend's update
       });
 
       await post('/chatbot-config/config', { 
         config: configToSave, 
-        openaiKey, 
-        systemInstructions, 
-        responseInstructions, 
-        logoUrl, 
-        baseDomain, 
-        contactLink, 
-        suggestedQuestions
+        cardStyles: stylesToSave, // Added from friend's update
+        openaiKey, systemInstructions, responseInstructions, 
+        logoUrl, baseDomain, contactLink, suggestedQuestions
       });
       
       toggleNotification({ type: 'success', message: 'Settings saved successfully!' });
@@ -159,7 +167,6 @@ const HomePage = () => {
 
   return (
     <Main>
-      {/* PAGE HEADER */}
       <Box background="neutral100" padding={8} paddingBottom={6}>
         <Flex justifyContent="space-between" alignItems="center">
           <Typography variant="beta" fontWeight="bold">Chatbot Configuration</Typography>
@@ -167,19 +174,13 @@ const HomePage = () => {
         </Flex>
       </Box>
 
-      {/* BODY CONTENT */}
       <Box paddingLeft={8} paddingRight={8} background="neutral100">
-        
-        {/* TOP CONFIGURATION ROWS */}
         <ConfigSettings 
-            baseDomain={baseDomain} 
-            openaiKey={openaiKey} 
-            logoUrl={logoUrl} 
-            contactLink={contactLink} 
-            onManage={(type: any) => setActiveModal(type)}
+            baseDomain={baseDomain} openaiKey={openaiKey} logoUrl={logoUrl} 
+            contactLink={contactLink} onManage={(type: any) => setActiveModal(type)}
         />
 
-        {/* ACTIVE COLLECTIONS BOX */}
+        {/* Integrated CollectionSection with friend's new props */}
         <CollectionSection 
           collections={activeCollections} 
           onToggleField={(uid, fName) => {
@@ -192,29 +193,21 @@ const HomePage = () => {
               ...c, fields: c.fields.map((f: FieldConfig) => ({ ...f, enabled: val }))
             }));
           }}
+          onRemoveCollection={handleRemoveCollection} // New from friend
+          onUpdateCardStyle={handleUpdateCardStyle} // New from friend
           onAddClick={() => setActiveModal('collections')}
         />
 
 
-        {/* SUGGESTED QUESTIONS */}
-<SuggestedQuestions 
-  questions={suggestedQuestions}
-  onAddClick={() => {
-    setEditingQuestionIndex(null);
-    setActiveModal('suggestion');
-  }}
-  onEditClick={(index) => {
-    setEditingQuestionIndex(index);
-    setActiveModal('suggestion');
-  }}
-  onRemove={(index) => {
-    setSuggestedQuestions(prev => prev.filter((_, i) => i !== index));
-  }}
-/>
+        <SuggestedQuestions 
+          questions={suggestedQuestions}
+          onAddClick={() => { setEditingQuestionIndex(null); setActiveModal('suggestion'); }}
+          onEditClick={(index) => { setEditingQuestionIndex(index); setActiveModal('suggestion'); }}
+          onRemove={(index) => { setSuggestedQuestions(prev => prev.filter((_, i) => i !== index)); }}
+        />
 
 
 
-        {/* SYSTEM & RESPONSE INSTRUCTIONS */}
         <InstructionsSection 
           systemInstructions={systemInstructions}
           responseInstructions={responseInstructions}
@@ -223,14 +216,13 @@ const HomePage = () => {
         />
       </Box>
 
-      {/* UNIFIED POPUP MODAL */}
       <PopUp 
-        isOpen={!!activeModal} 
-        type={activeModal} 
-        onClose={() => setActiveModal(null)} 
-        onSave={handlePopupSave}
-        // Filter plugin collection so it is not shown in selection popup
-        availableCollections={allContentTypes.filter(c => c.uid !== 'plugin::chatbot-config.faq')}
+        isOpen={!!activeModal} type={activeModal} onClose={() => setActiveModal(null)} onSave={handlePopupSave}
+        // Filter out plugin core and items already active (Friend's logic)
+        availableCollections={allContentTypes.filter(c => 
+          c.uid !== 'plugin::chatbot-config.faq' && 
+          !activeCollections.some(active => active.uid === c.uid)
+        )}
         initialData={
             activeModal === 'collections' ? activeCollections.map(c => c.uid) :
             activeModal === 'suggestion' ? (editingQuestionIndex !== null ? suggestedQuestions[editingQuestionIndex] : ''):
@@ -240,7 +232,6 @@ const HomePage = () => {
         }
       />
 
-      {/* FLOATING PREVIEW WIDGET */}
       <ChatbotPreview />
     </Main>
   );
