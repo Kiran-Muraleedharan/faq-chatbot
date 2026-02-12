@@ -46,7 +46,7 @@ const SettingRow = ({
                   </Typography>
               </Box>
           ) : (
-              /* NOT CONFIGURED TEXT WITHOUT BACKGROUND */
+
               <Typography variant="sigma" textColor="danger600" fontWeight="bold">
                   NOT CONFIGURED
               </Typography>

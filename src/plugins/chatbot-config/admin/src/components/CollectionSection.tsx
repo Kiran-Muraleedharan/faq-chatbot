@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'styled-components'; // Added styled-components
+import styled from 'styled-components'; 
 import {
   Box,
   Typography,
@@ -13,7 +13,7 @@ import {
 } from '@strapi/design-system';
 import { Plus, Trash } from '@strapi/icons';
 
-// Styled button to handle the red hover effect specifically for the trash icon
+
 const DeleteButton = styled(Button)`
   &:hover {
     background: ${({ theme }) => theme.colors.danger100} !important;
@@ -42,7 +42,7 @@ interface CollectionSectionProps {
   onRemoveCollection: (uid: string) => void;
   onUpdateCardStyle: (uid: string, style: string) => void;
   onAddClick: () => void;
-  isAddDisabled?: boolean; // New prop to handle button disabling
+  isAddDisabled?: boolean; 
 }
 
 const CollectionSection: React.FC<CollectionSectionProps> = ({
@@ -52,7 +52,7 @@ const CollectionSection: React.FC<CollectionSectionProps> = ({
   onRemoveCollection,
   onUpdateCardStyle,
   onAddClick,
-  isAddDisabled = false // Default to false
+  isAddDisabled = false 
 }) => {
   return (
     <Box background="neutral0" shadow="filterShadow" hasRadius paddingBottom={collections.length > 0 ? 4 : 0} marginBottom={6}>
@@ -65,7 +65,7 @@ const CollectionSection: React.FC<CollectionSectionProps> = ({
             variant="secondary"
             startIcon={<Plus />}
             onClick={onAddClick}
-            disabled={isAddDisabled} // Logic applied here
+            disabled={isAddDisabled} 
           >
             Add Collection
           </Button>
@@ -93,7 +93,7 @@ const CollectionSection: React.FC<CollectionSectionProps> = ({
                   </Accordion.Trigger>
 
                   <Box paddingRight={4}>
-                    {/* Using our custom DeleteButton for the red hover effect */}
+
                     <DeleteButton
                       variant="ghost"
                       title="Remove"

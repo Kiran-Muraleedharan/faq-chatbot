@@ -66,7 +66,7 @@ const PopUp = ({ isOpen, onClose, onSave, type, initialData, availableCollection
   };
 
   const getModalContent = () => {
-    // 1. IMAGE PICKER GRID VIEW (Flex-based to avoid GridItem error)
+    // IMAGE PICKER GRID VIEW 
     if (type === 'logo' && isPickerOpen) {
       return (
         <Flex direction="column" gap={4} alignItems="stretch">
@@ -107,7 +107,7 @@ const PopUp = ({ isOpen, onClose, onSave, type, initialData, availableCollection
       );
     }
 
-    // 2. MAIN VIEWS
+    // MAIN VIEWS
     switch (type) {
       case 'key':
       case 'domain':

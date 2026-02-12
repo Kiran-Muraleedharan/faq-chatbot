@@ -19,7 +19,6 @@ const MediaLib = ({ isOpen, onClose, onSelect }: MediaLibProps) => {
       console.log("Is 'repo-media-library' present?", !!comps['repo-media-library']);
     }
 
-    // Try the three most common keys in Strapi 5
     return comps['media-library'] || comps['repo-media-library'] || comps['upload'];
   }) as any;
 
@@ -29,7 +28,6 @@ const MediaLib = ({ isOpen, onClose, onSelect }: MediaLibProps) => {
 
   const handleSelectAssets = (assets: any[]) => {
     if (assets && assets.length > 0) {
-      // In Strapi, assets[0].url is the relative path
       onSelect(assets[0].url);
     }
     onClose();

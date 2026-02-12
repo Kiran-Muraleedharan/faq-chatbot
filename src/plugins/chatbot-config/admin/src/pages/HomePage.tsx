@@ -3,7 +3,6 @@ import { Main, Typography, Flex, Button, Box, Loader } from '@strapi/design-syst
 import { Check } from '@strapi/icons';
 import { useFetchClient, useNotification } from '@strapi/admin/strapi-admin';
 
-// Import our custom components
 import ChatbotPreview from '../components/ChatbotPreview';
 import ConfigSettings from '../components/ConfigSettings'; 
 import CollectionSection from '../components/CollectionSection';
@@ -11,7 +10,6 @@ import SuggestedQuestions from '../components/SuggestedQuestions';
 import InstructionsSection from '../components/InstructionsSection';
 import PopUp from '../components/PopUp';
 
-// --- TYPES (Updated to include cardStyle) ---
 type FieldConfig = {
   name: string;
   enabled: boolean;
@@ -21,15 +19,15 @@ type CollectionConfig = {
   uid: string;
   name: string;
   fields: FieldConfig[];
-  cardStyle?: string; // Added from friend's update
+  cardStyle?: string; 
 };
 
 const HomePage = () => {
-  // --- Data States ---
+  // Data States
   const [allContentTypes, setAllContentTypes] = useState<CollectionConfig[]>([]);
   const [activeCollections, setActiveCollections] = useState<CollectionConfig[]>([]);
   
-  // --- Settings States ---
+  // Settings States
   const [openaiKey, setOpenaiKey] = useState('');
   const [systemInstructions, setSystemInstructions] = useState('');
   const [responseInstructions, setResponseInstructions] = useState('');
@@ -39,7 +37,7 @@ const HomePage = () => {
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   
-  // --- UI States ---
+  // UI States
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeModal, setActiveModal] = useState<'key' | 'logo' | 'domain' | 'contact' | 'collections' | 'suggestion' |  null>(null);
@@ -47,7 +45,7 @@ const HomePage = () => {
   const { get, post } = useFetchClient();
   const { toggleNotification } = useNotification();
 
-  // Initialize data
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -56,7 +54,7 @@ const HomePage = () => {
         const savedConfig = settings.config || {}; 
         const savedStyles = settings.cardStyles || {}; // Added from friend's update
 
-        // 1. Set Settings from Database
+        // Set Settings from Database
         setOpenaiKey(settings.openaiKey || '');
         setSystemInstructions(settings.systemInstructions || '');
         setResponseInstructions(settings.responseInstructions || '');
@@ -65,7 +63,7 @@ const HomePage = () => {
         setContactLink(settings.contactLink || '');
         setSuggestedQuestions(settings.suggestedQuestions || []);
 
-        // 2. Format All Strapi Content Types (Updated with cardStyle mapping)
+  
         const formattedAll: CollectionConfig[] = (data.contentTypes || []).map((ct: any) => ({
           uid: ct.uid,
           name: ct.displayName,
@@ -78,7 +76,7 @@ const HomePage = () => {
 
         setAllContentTypes(formattedAll);
 
-        // 3. Set Active Collections 
+        // Set Active Collections 
         const initialActive = formattedAll.filter((ct: CollectionConfig) => 
             Object.keys(savedConfig).includes(ct.uid)
         );
@@ -93,7 +91,7 @@ const HomePage = () => {
     init();
   }, [get]);
 
-  // --- Handlers from Friend's Update ---
+
   const handleUpdateCardStyle = (uid: string, style: string) => {
     setActiveCollections((prev) => prev.map((c) =>
       c.uid === uid ? { ...c, cardStyle: style } : c
@@ -135,7 +133,7 @@ const HomePage = () => {
     setActiveModal(null);
   };
 
-  // --- Save Logic (Updated to save cardStyles) ---
+  // Save Logic
   const save = async () => {
     setIsSaving(true);
     try {
@@ -150,7 +148,7 @@ const HomePage = () => {
 
       await post('/chatbot-config/config', { 
         config: configToSave, 
-        cardStyles: stylesToSave, // Added from friend's update
+        cardStyles: stylesToSave, 
         openaiKey, systemInstructions, responseInstructions, 
         logoUrl, baseDomain, contactLink, suggestedQuestions
       });
@@ -180,7 +178,6 @@ const HomePage = () => {
             contactLink={contactLink} onManage={(type: any) => setActiveModal(type)}
         />
 
-        {/* Integrated CollectionSection with friend's new props */}
         <CollectionSection 
           collections={activeCollections} 
           onToggleField={(uid, fName) => {
@@ -193,8 +190,8 @@ const HomePage = () => {
               ...c, fields: c.fields.map((f: FieldConfig) => ({ ...f, enabled: val }))
             }));
           }}
-          onRemoveCollection={handleRemoveCollection} // New from friend
-          onUpdateCardStyle={handleUpdateCardStyle} // New from friend
+          onRemoveCollection={handleRemoveCollection} 
+          onUpdateCardStyle={handleUpdateCardStyle} 
           onAddClick={() => setActiveModal('collections')}
           isAddDisabled={allContentTypes.filter(c => c.uid !== 'plugin::chatbot-config.faq').length === activeCollections.length
   }
@@ -220,7 +217,7 @@ const HomePage = () => {
 
       <PopUp 
         isOpen={!!activeModal} type={activeModal} onClose={() => setActiveModal(null)} onSave={handlePopupSave}
-        // Filter out plugin core and items already active (Friend's logic)
+  
         availableCollections={allContentTypes.filter(c => 
           c.uid !== 'plugin::chatbot-config.faq' && 
           !activeCollections.some(active => active.uid === c.uid)

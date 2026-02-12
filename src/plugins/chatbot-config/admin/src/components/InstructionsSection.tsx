@@ -24,11 +24,7 @@ const InstructionRow = ({
         </Typography>
         
         <Flex gap={3} alignItems="center">
-          {/* 
-              LOGIC: 
-              1. If closed and has NO value: Show NOT CONFIGURED in red.
-              2. If closed and HAS value: Show nothing.
-          */}
+
           {!value && !isOpen && (
             <Typography variant="sigma" textColor="danger600" fontWeight="bold">
               NOT CONFIGURED
