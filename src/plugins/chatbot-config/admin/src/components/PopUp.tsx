@@ -214,7 +214,7 @@ const PopUp = ({ isOpen, onClose, onSave, type, initialData, availableCollection
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={onClose} variant="tertiary">Cancel</Button>
-          {!isPickerOpen && <Button onClick={() => { onSave(tempData); onClose(); }}>Save Changes</Button>}
+          {!isPickerOpen && <Button onClick={() => { onSave(tempData); onClose(); }}>Apply Changes</Button>}
         </Modal.Footer>
       </Modal.Content>
     </Modal.Root>

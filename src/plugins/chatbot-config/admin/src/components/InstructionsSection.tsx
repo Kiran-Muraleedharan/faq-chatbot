@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, Flex, Button, Divider, Textarea } from '@strapi/design-system';
 
-// --- 1. MOVE THE HELPER OUTSIDE THE MAIN COMPONENT ---
 const InstructionRow = ({ 
   title, 
   value, 
@@ -23,14 +22,21 @@ const InstructionRow = ({
         <Typography variant="omega" fontWeight="bold">
           {title}
         </Typography>
-        <Flex gap={3}>
-          {value && !isOpen && (
-            <Box paddingLeft={2} paddingRight={2} background="success100" hasRadius>
-              <Typography variant="sigma" textColor="success600" fontWeight="bold">CONFIGURED</Typography>
-            </Box>
+        
+        <Flex gap={3} alignItems="center">
+          {/* 
+              LOGIC: 
+              1. If closed and has NO value: Show NOT CONFIGURED in red.
+              2. If closed and HAS value: Show nothing.
+          */}
+          {!value && !isOpen && (
+            <Typography variant="sigma" textColor="danger600" fontWeight="bold">
+              NOT CONFIGURED
+            </Typography>
           )}
+
           <Button variant="tertiary" onClick={onToggle}>
-            {isOpen ? 'Save' : 'Manage'}
+            {isOpen ? 'Apply' : 'Manage'}
           </Button>
         </Flex>
       </Flex>
@@ -78,7 +84,6 @@ const InstructionsSection = ({
         <Typography variant="delta" fontWeight="bold">Instructions</Typography>
       </Box>
 
-      {/* --- 2. CALL THE STABLE HELPER --- */}
       <InstructionRow
         title="System Instructions"
         value={systemInstructions}

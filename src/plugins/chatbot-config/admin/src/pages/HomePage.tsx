@@ -196,6 +196,8 @@ const HomePage = () => {
           onRemoveCollection={handleRemoveCollection} // New from friend
           onUpdateCardStyle={handleUpdateCardStyle} // New from friend
           onAddClick={() => setActiveModal('collections')}
+          isAddDisabled={allContentTypes.filter(c => c.uid !== 'plugin::chatbot-config.faq').length === activeCollections.length
+  }
         />
 
 

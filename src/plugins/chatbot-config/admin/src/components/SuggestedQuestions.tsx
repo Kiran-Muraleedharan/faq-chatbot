@@ -49,7 +49,7 @@ const SuggestedQuestions = ({ questions, onAddClick, onEditClick, onRemove }: Su
               <Typography variant="omega" textColor="neutral800">{q}</Typography>
               <Flex gap={1}>
                 <ActionButton onClick={() => onEditClick(index)} title="Edit"><Pencil /></ActionButton>
-                <DangerActionButton onClick={() => onRemove(index)} title="Delete"><Trash /></DangerActionButton>
+                <DangerActionButton onClick={() => onRemove(index)} title="Remove"><Trash /></DangerActionButton>
               </Flex>
             </Flex>
           ))}
