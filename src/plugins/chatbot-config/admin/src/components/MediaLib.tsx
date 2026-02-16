@@ -10,15 +10,6 @@ interface MediaLibProps {
 const MediaLib = ({ isOpen, onClose, onSelect }: MediaLibProps) => {
   const MediaLibraryDialog = useStrapiApp('ChatbotConfig', (app: any) => {
     const comps = app.components || {};
-    
-    // DEBUG: Look for the keys in your console to see which one is correct
-    if (isOpen) {
-      console.log("--- Chatbot Config Debug: Strapi Component Registry ---");
-      console.log("All available keys:", Object.keys(comps));
-      console.log("Is 'media-library' present?", !!comps['media-library']);
-      console.log("Is 'repo-media-library' present?", !!comps['repo-media-library']);
-    }
-
     return comps['media-library'] || comps['repo-media-library'] || comps['upload'];
   }) as any;
 

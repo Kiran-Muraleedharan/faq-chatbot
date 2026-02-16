@@ -165,14 +165,14 @@ const HomePage = () => {
 
   return (
     <Main>
-      <Box background="neutral100" padding={8} paddingBottom={6}>
+      <Box background="neutral100" position="sticky" top={0} zIndex={2}  padding={8} paddingBottom={6}>
         <Flex justifyContent="space-between" alignItems="center">
           <Typography variant="beta" fontWeight="bold">Chatbot Configuration</Typography>
           <Button onClick={save} loading={isSaving} startIcon={<Check />}>Save Settings</Button>
         </Flex>
       </Box>
 
-      <Box paddingLeft={8} paddingRight={8} background="neutral100">
+      <Box paddingLeft={8} paddingRight={8} paddingTop={2} background="neutral100">
         <ConfigSettings 
             baseDomain={baseDomain} openaiKey={openaiKey} logoUrl={logoUrl} 
             contactLink={contactLink} onManage={(type: any) => setActiveModal(type)}
